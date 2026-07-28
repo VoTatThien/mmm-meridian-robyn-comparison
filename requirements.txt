@@ -1,0 +1,8 @@
+google-meridian>=1.0.5
+jax
+jaxlib
+pandas
+numpy
+statsmodels
+matplotlib
+seaborn
