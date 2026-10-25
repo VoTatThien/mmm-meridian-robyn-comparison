@@ -1,0 +1,10 @@
+{
+ "mode": "notears",
+ "runtime_s": 1648.4,
+ "train_r2": 0.9885057806968689,
+ "holdout_r2": 0.9781374335289001,
+ "train_rmse": 148430.80564357253,
+ "holdout_rmse": 227938.3428210357,
+ "paper_holdout_r2": 0.843,
+ "paper_train_r2": 0.949
+}

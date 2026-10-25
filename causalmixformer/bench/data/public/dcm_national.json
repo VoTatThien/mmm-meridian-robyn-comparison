@@ -1,0 +1,36 @@
+{
+ "scenario": "PUBLIC",
+ "seed": 0,
+ "T": 109,
+ "test_weeks": 13,
+ "channels": [
+  "ch01",
+  "ch02",
+  "ch03",
+  "ch04",
+  "ch05",
+  "ch06",
+  "ch07",
+  "ch08",
+  "ch09",
+  "ch10",
+  "ch11",
+  "ch12",
+  "ch13"
+ ],
+ "controls": [
+  "control_01",
+  "control_02",
+  "control_03",
+  "control_04",
+  "control_05",
+  "control_06",
+  "control_07",
+  "trend",
+  "sin1",
+  "cos1",
+  "sin2",
+  "cos2"
+ ],
+ "true_roi": null
+}

@@ -1,0 +1,8 @@
+model,train_r2,train_mape,test_r2,test_mape,runtime_s
+DeepCausalMMM,-1.075,12.872,-39.586,12.62,93.7
+DeepCausalMMM (NOTEARS),-1.295,13.357,-22.765,9.751,97.1
+LightweightMMM,0.921,2.305,-41.989,16.803,122.9
+Meridian,0.872,2.898,-44.97,17.953,76.6
+Orbit KTR,0.608,5.416,-240.453,43.175,224.4
+PyMC-Marketing,0.892,2.778,-38.797,17.488,202.4
+Robyn,0.925,2.179,-4.12,5.703,232.9

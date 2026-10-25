@@ -1,0 +1,10 @@
+{
+ "mode": "triangular",
+ "runtime_s": 1662.7,
+ "train_r2": 0.9882869720458984,
+ "holdout_r2": 0.9778696894645691,
+ "train_rmse": 149836.68464031097,
+ "holdout_rmse": 229329.85250071567,
+ "paper_holdout_r2": 0.843,
+ "paper_train_r2": 0.949
+}

@@ -2,6 +2,13 @@
 
 [![DOI](https://img.shields.io/badge/Conference-ICATSD%202026-blue)](https://icatsd.iuh.edu.vn/)
 
+## Projects in this repository
+
+| Folder | Paper |
+|---|---|
+| `data/`, `models/`, `analysis/` (this page) | *Analyzing the Differences Between Google Meridian and Meta Robyn in Marketing Mix Modeling: A Three-Configuration Comparative Study* (ICATSD 2026) |
+| [`causalmixformer/`](causalmixformer/) | *CausalMixFormer: A Mediation-Aware Causal Temporal Transformer for Nonlinear Marketing Mix Modeling* (manuscript in preparation) — see [`causalmixformer/README.md`](causalmixformer/README.md) |
+
 ## Overview
 
 This repository contains the analysis scripts and experimental configurations for the paper:
@@ -28,6 +35,7 @@ This study conducts a systematic three-configuration comparative analysis of Goo
 ├── analysis/
 │   ├── correlation_vif_analysis.py  # Correlation matrix & VIF computation
 │   └── generate_figures_and_export.py  # Figure generation
+├── causalmixformer/                 # CausalMixFormer (separate paper, own README)
 ├── README.md
 └── requirements.txt
 ```
