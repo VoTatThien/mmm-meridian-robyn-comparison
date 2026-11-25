@@ -14,29 +14,37 @@ import matplotlib.pyplot as plt
 from cmf.model import EnsembleCMF, ModelConfig
 from cmf.simulate import CHANNELS, SimConfig, simulate
 
-d = simulate(SimConfig(scenario="S2", seed=100))  # an evaluation seed
-tT = d.T - 13
-att = EnsembleCMF(ModelConfig(), n_members=1).fit(d, tT, seed=100)
-geo = EnsembleCMF(ModelConfig(carryover="geometric"), n_members=1).fit(d, tT, seed=100)
-w_att = att.members[0][0].carry.weights().detach().numpy()
-w_geo = geo.members[0][0].carry.weights().detach().numpy()
-true = d.meta["kernels"]
+import os
+
+CACHE = "results_final/kernels_s2.npz"  # fitted kernels, so that the figure can be redrawn without refitting
+if os.path.exists(CACHE):
+    z = np.load(CACHE)
+    w_att, w_geo, true = z["w_att"], z["w_geo"], z["true"]
+else:
+    d = simulate(SimConfig(scenario="S2", seed=100))  # an evaluation seed
+    tT = d.T - 13
+    att = EnsembleCMF(ModelConfig(), n_members=1).fit(d, tT, seed=100)
+    geo = EnsembleCMF(ModelConfig(carryover="geometric"), n_members=1).fit(d, tT, seed=100)
+    w_att = att.members[0][0].carry.weights().detach().numpy()
+    w_geo = geo.members[0][0].carry.weights().detach().numpy()
+    true = np.asarray(d.meta["kernels"])
+    np.savez(CACHE, w_att=w_att, w_geo=w_geo, true=true)
 
 show = [0, 2, 4]  # TV, Social, Radio have delayed (Weibull) carryover in S2
-fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.3), sharey=True)
+fig, axes = plt.subplots(1, 3, figsize=(5.1, 1.75), sharey=True)
 lags = np.arange(true.shape[1])
 for ax, c in zip(axes, show):
     ax.plot(lags, true[c], color="#222222", lw=1.8, label="True kernel")
     ax.plot(lags, w_att[c], color="#2f5d8a", lw=1.5, marker="o", ms=3, label="Lag attention (CT3)")
     ax.plot(lags, w_geo[c], color="#d18f52", lw=1.5, ls="--", label="Geometric adstock")
-    ax.set_title(CHANNELS[c], fontsize=9)
+    ax.set_title(CHANNELS[c], fontsize=8)
     ax.set_xlabel("Lag (weeks)", fontsize=8)
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(labelsize=7)
 axes[0].set_ylabel("Weight", fontsize=8)
-axes[0].legend(fontsize=6.5, frameon=False)
-fig.tight_layout()
-import os
+h, l = axes[0].get_legend_handles_labels()
+fig.legend(h, l, loc="upper center", ncol=3, fontsize=7, frameon=False)
+fig.tight_layout(rect=(0, 0, 1, 0.9))
 os.makedirs("paper/figures", exist_ok=True)
 fig.savefig("paper/figures/kernels_s2.pdf")
 fig.savefig("paper/figures/kernels_s2.png", dpi=200)

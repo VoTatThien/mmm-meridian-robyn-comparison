@@ -110,16 +110,16 @@ def bench_table(b):
             sd = lambda c: r[c].std(ddof=1)
             name = "\\textbf{CausalMixFormer}" if m == "CausalMixFormer" else (
                 "\\quad " + m.replace("CausalMixFormer ", "").strip("()") if m.startswith("CausalMixFormer") else m)
-            B = lambda txt, cond: f"\\textbf{{{txt}}}" if cond else txt
+            B = lambda txt, cond: f"\\textbf{{\\boldmath {txt}}}" if cond else txt
             lines.append(" & ".join([
                 name,
                 B(f"{r.roi_mape.mean():.1f} $\\pm$ {sd('roi_mape'):.1f}", m == best_mape),
-                B(f"{r['rank'].mean():.2f}", m == best_rank),
-                B(f"{r.tv_bias.mean():+.0f}", m == best_tv),
-                B(f"{r.test_r2.mean():.2f}", m == best_r2),
+                B(fnum(r["rank"].mean(), 2), m == best_rank),
+                B(signed(r.tv_bias.mean()), m == best_tv),
+                B(fnum(r.test_r2.mean(), 2), m == best_r2),
                 f"{r.test_mape.mean():.2f}"]) + " \\\\")
-    return (r"""\begin{table}[t]
-\caption{Comparison with the open-source frameworks of the preliminary benchmark on its nine national-level datasets (three per scenario, 140 training and 16 test weeks). ROI MAPE in \%, $\rho$: Spearman correlation of estimated and true ROI, TV bias: relative error of the TV ROI in \%, test $R^2$ and test MAPE (\%) on the 16 test weeks. All methods are scored with the benchmark's code; the best value per scenario is in bold. The row ``first member (post hoc)'' uses the first ensemble member as point estimate and was added after the evaluation results were seen; it is not eligible for bold.}
+    return (r"""\begin{table}[!htb]
+\caption{Comparison with the open-source frameworks of the preliminary benchmark on its nine national-level datasets (three per scenario, 140 training and 16 test weeks). ROI MAPE in \%, $\rho$: Spearman correlation of estimated and true ROI, TV bias: relative error of the TV ROI in \%, test $R^2$ and test MAPE (\%) on the 16 test weeks. All methods are scored with the benchmark's code; the best value per scenario is in bold. The row ``first member, post hoc'' uses the first ensemble member as point estimate and was added after the evaluation results were seen; it is not eligible for bold.}
 \label{tab:bench}
 \centering
 \footnotesize
@@ -144,7 +144,7 @@ def bench_tv_figure(b):
     order = [m for m in BENCH_ORDER if (sub.model == m).any() and m not in ("CausalMixFormer (linear baseline)",
              "CausalMixFormer (first member, post hoc)")]
     order = sorted(order, key=lambda m: sub[sub.model == m].tv_bias.mean())
-    fig, ax = plt.subplots(figsize=(6.4, 2.9))
+    fig, ax = plt.subplots(figsize=(5.1, 2.35))
     y = np.arange(len(order))
     for k, m in enumerate(order):
         v = sub[sub.model == m].tv_bias
@@ -161,14 +161,32 @@ def bench_tv_figure(b):
     fig.savefig(f"{OUT_F}/bench_tv_s3.png", dpi=200)
 
 
+def tex_num(txt):
+    """Typeset signs of numbers as math symbols (a hyphen is not a minus sign)."""
+    import re
+    txt = re.sub(r"(?<![\w$])-(?=\d)", "$-$", txt)
+    return re.sub(r"(?<![\w$])\+(?=\d)", "$+$", txt)
+
+
+def fnum(v, digits):
+    """Fixed-point number with a typographic minus; a value that rounds to zero carries no sign."""
+    v = 0.0 if round(float(v), digits) == 0 else float(v)
+    return tex_num(f"{v:.{digits}f}")
+
+
+def signed(v):
+    """Signed integer percentage; values that round to zero are printed as 0 without a sign."""
+    return "0" if round(v) == 0 else tex_num(f"{v:+.0f}")
+
+
 def cell(m, s, digits, pct=False, bold=False):
     if np.isnan(m):
         return "--"
     if pct:
-        txt = f"{(0 if round(m) == 0 else m):+.0f} $\\pm$ {s:.0f}".replace("+0 ", "0 ")
+        txt = f"{signed(m)} $\\pm$ {s:.0f}"
     else:
-        txt = f"{m:.{digits}f} $\\pm$ {s:.{digits}f}"
-    return f"\\textbf{{{txt}}}" if bold else txt
+        txt = fnum(m, digits) + f" $\\pm$ {s:.{digits}f}"
+    return f"\\textbf{{\\boldmath {txt}}}" if bold else txt
 
 
 def table(df, methods, label, caption, seeds=None, nomedia=True):
@@ -209,7 +227,7 @@ def table(df, methods, label, caption, seeds=None, nomedia=True):
             if not nm.empty:
                 lines.append("No-media forecaster & -- & -- & -- & "
                              f"{cell(nm.r2_holdout.mean(), nm.r2_holdout.std(ddof=1) if len(nm) > 1 else 0, 3)} & -- \\\\")
-    tex = (r"""\begin{table}[t]
+    tex = (r"""\begin{table}[!htb]
 \caption{""" + caption + r"""}
 \label{""" + label + r"""}
 \centering
@@ -238,7 +256,7 @@ def coverage_table(df, seeds):
             rr = r[r.scenario == sc]
             cells.append("--" if rr.empty else f"{rr.coverage.mean():.2f} / {rr.interval_width.mean():.2f}")
         lines.append(" & ".join(cells) + " \\\\")
-    return (r"""\begin{table}[t]
+    return (r"""\begin{table}[!htb]
 \caption{Empirical coverage of the nominal 90\% ROI intervals and mean relative interval width (coverage / width), averaged over channels and over the seeds of Table~\ref{tab:ablation}.}
 \label{tab:coverage}
 \centering
@@ -290,7 +308,7 @@ def wilcoxon_table(df):
     for m, v in out.items():
         lines.append(f"{LABEL[m]} & {v['n']} & {100*v['win_mape']:.0f}\\% ({f(v['p_mape_holm'])}) & "
                      f"{100*v['win_tv']:.0f}\\% ({f(v['p_tv_holm'])}) & {100*v['win_up']:.0f}\\% ({f(v['p_up_holm'])}) \\\\")
-    tex = (r"""\begin{table}[t]
+    tex = (r"""\begin{table}[!htb]
 \caption{Paired comparison of CausalMixFormer with each method over all simulated runs (scenarios $\times$ seeds). Each cell gives the share of runs in which CausalMixFormer is better and, in parentheses, the two-sided $p$-value of the Wilcoxon signed-rank test, adjusted with the Holm procedure over the six comparisons of each column.}
 \label{tab:wilcoxon}
 \centering
@@ -341,7 +359,7 @@ def realdata_table():
         r2t = "--" if m == "Naive" else f"{s['r2w_train']:.2f}"
         lines.append(f"{names[m]} & {r2t} & {wcells} & {s['r2p']:.3f} & {mtxt} & {stxt} \\\\")
     head_w = " & ".join(f"wk {c}--{c+7}" for c in cut)
-    tex = (r"""\begin{table}[t]
+    tex = (r"""\begin{table}[!htb]
 \caption{Results on the public 190-region dataset (184 regions with complete series, 109 weeks, 13 channels). Within-geo $R^2$ is computed on the training weeks after removing each region's mean. Holdout WAPE (\%) is reported for three rolling origins of 8 weeks each, pooled $R^2$ is averaged over origins. Media share is the estimated share of visits attributed to media; attribution spread is the standard deviation of channel shares across seeds (percentage points, averaged over channels). Averages over three seeds.}
 \label{tab:realdata}
 \centering
@@ -386,10 +404,10 @@ def robust_table(r):
             lines.append(" & ".join([
                 LABEL[m],
                 f"{x.roi_mape.mean():.2f}",
-                f"{x.tv_bias_pct.mean():+.0f}",
-                f"{np.mean(ps):+.0f}",
-                f"{x.uplift_captured.mean():.2f}"]) + " \\\\")
-    return (r"""\begin{table*}[t]
+                signed(x.tv_bias_pct.mean()),
+                signed(np.mean(ps)),
+                fnum(x.uplift_captured.mean(), 2)]) + " \\\\")
+    return (r"""\begin{table*}[!htb]
 \caption{Robustness scenarios (seeds 100--102). TV and paid-search bias are relative errors of the corresponding ROI in \%; uplift as in Table~\ref{tab:main}. $^\dagger$Re-implemented.}
 \label{tab:robust}
 \centering
@@ -414,7 +432,7 @@ def decomposition_figure(df, r):
 
     panels = [("S3", df, 0, "TV, scenario S3"), ("S6", r, 0, "TV, scenario S6"), ("S6", r, 1, "Paid search, scenario S6")]
     meths = [("Ridge", "Ridge"), ("Ridge+M", "Ridge+M"), ("NNN", "NNN"), ("CMF", "CMF")]
-    fig, axes = plt.subplots(1, 3, figsize=(7.4, 2.6), sharey=False)
+    fig, axes = plt.subplots(1, 3, figsize=(5.1, 2.3), sharey=False)
     for ax, (sc, src, ch, title) in zip(axes, panels):
         sub = src[src.scenario == sc] if not src.empty else src
         if sub.empty:
@@ -439,7 +457,7 @@ def decomposition_figure(df, r):
             else:
                 ax.bar(k, tot, 0.6, color={"Ridge": "#9aa5b1", "Ridge+M": "#d18f52", "NNN": "#7c9fc9"}[m])
             labels.append(lab)
-        ax.set_xticks(range(len(labels)), labels, fontsize=6.5)
+        ax.set_xticks(range(len(labels)), labels, fontsize=6.5, rotation=40, ha="right")
         ax.set_title(title, fontsize=8)
         ax.tick_params(axis="y", labelsize=7)
         ax.spines[["top", "right"]].set_visible(False)
@@ -448,8 +466,8 @@ def decomposition_figure(df, r):
     fig.legend(handles=[Patch(color="#222222", label="true direct"), Patch(color="#888888", label="true indirect"),
                         Patch(color="#2f5d8a", label="CausalMixFormer direct"),
                         Patch(color="#9cb9d9", label="CausalMixFormer indirect")],
-               loc="lower center", ncol=4, fontsize=6.8, frameon=False, bbox_to_anchor=(0.5, -0.02))
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
+               loc="lower center", ncol=2, fontsize=7, frameon=False, bbox_to_anchor=(0.5, -0.01))
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
     fig.savefig(f"{OUT_F}/decomposition.pdf")
     fig.savefig(f"{OUT_F}/decomposition.png", dpi=200)
 
@@ -470,7 +488,7 @@ def roi_figure(df):
     names = {"Ridge": "Ridge (no mediator)", "Ridge+M": "Ridge (mediator as control)", "XGB-SHAP": "XGBoost+SHAP",
              "NNN": "NNN", "CMF": "CausalMixFormer"}
     colors = {"Ridge": "#9aa5b1", "Ridge+M": "#d18f52", "XGB-SHAP": "#c9b458", "NNN": "#7c9fc9", "CMF": "#2f5d8a"}
-    fig, ax = plt.subplots(figsize=(6.6, 3.1))
+    fig, ax = plt.subplots(figsize=(5.1, 2.5))
     w = 0.84 / (len(meths) + 1)
     x = np.arange(len(ch))
     ax.bar(x - 0.42 + w / 2, true, w, color="#222222", label="True ROI")
@@ -479,10 +497,11 @@ def roi_figure(df):
         ax.bar(x - 0.42 + w * (k + 1.5), est.mean(0), w, yerr=est.std(0, ddof=1) if len(est) > 1 else None,
                color=colors[m], label=names[m], capsize=1.5, error_kw=dict(lw=0.5))
     ax.axhline(0, color="#444444", lw=0.6)
-    ax.set_xticks(x, ch)
-    ax.set_ylabel("ROI")
+    ax.set_xticks(x, ch, fontsize=8)
+    ax.set_ylabel("ROI", fontsize=8)
+    ax.tick_params(axis="y", labelsize=7.5)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(fontsize=6.8, frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+    ax.legend(fontsize=7, frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout()
     fig.savefig(f"{OUT_F}/roi_s3.pdf")
     fig.savefig(f"{OUT_F}/roi_s3.png", dpi=200)
@@ -539,7 +558,7 @@ if __name__ == "__main__":
     for name in ["main_results", "ablation", "realdata", "benchmark"]:
         if os.path.exists(f"{OUT_T}/{name}.tex"):
             t = open(f"{OUT_T}/{name}.tex").read()
-            t = t.replace("\\begin{table}[t]", "\\begin{table*}[t]", 1).replace("\\end{table}", "\\end{table*}", 1)
+            t = t.replace("\\begin{table}[!htb]", "\\begin{table*}[!htb]", 1).replace("\\end{table}", "\\end{table*}", 1)
             open(f"{OUT_T}/{name}.tex", "w").write(t)
     if not b.empty:
         bench_tv_figure(b)
@@ -554,3 +573,39 @@ if __name__ == "__main__":
     print("\nWilcoxon:", json.dumps({k: {a: round(b, 4) for a, b in v.items()} for k, v in wsum.items()}, indent=1))
     if rsum:
         print("\nReal data:", json.dumps({k: {a: (round(b, 4) if isinstance(b, float) else b) for a, b in v.items()} for k, v in rsum.items()}, indent=1, default=float))
+
+    # ---- numbers quoted in the text that are not in a table (printed for traceability)
+    print("\n=== Text numbers ===")
+    cm3 = df[(df.scenario == "S3") & (df.method == "CMF")]
+    ratio = [t[0] / d[0] for t, d in zip(cm3.true_roi, cm3.true_direct_roi)]
+    print(f"S3 TV total/direct ROI over seeds {sorted(cm3.seed)}: {min(ratio):.2f}-{max(ratio):.2f}; "
+          f"indirect share {1 - 1 / min(ratio):.2f}-{1 - 1 / max(ratio):.2f}")
+    prior_med = float(np.exp(0.2))  # post hoc reference: every channel at the prior median ROI
+    for sc in SCEN:
+        tr = np.stack(df[(df.scenario == sc) & (df.method == "CMF")].true_roi.values)
+        mape_c = np.mean(np.abs(prior_med - tr) / tr)
+        tvb = np.mean(100 * (prior_med - tr[:, 0]) / tr[:, 0])
+        print(f"post hoc prior-median reference ({prior_med:.2f} for all channels) {sc}: ROI MAPE {mape_c:.2f}, TV bias {tvb:+.0f}%")
+    for sc in SCEN:
+        c = df[(df.scenario == sc) & (df.method == "CMF")]
+        est, tru = np.stack(c.roi.values).mean(0), np.stack(c.true_roi.values).mean(0)
+        print(f"CMF {sc} mean ROI by channel {c.iloc[0]['channels']}: estimated {np.round(est, 2)}, true {np.round(tru, 2)}")
+    for sc in SCEN:
+        c = df[(df.scenario == sc) & (df.method == "CMF")]
+        print(f"CMF {sc} ({len(c)} seeds): coverage {c.coverage.mean():.2f}, rel. width {c.interval_width.mean():.2f}, "
+              f"losing runs {(c.uplift_captured < 0).sum()}")
+    c = df[df.method == "CMF"].uplift_captured
+    print(f"CMF runs with 0 <= uplift < 0.1 over S1-S3: {int(((c >= 0) & (c < 0.1)).sum())} of {len(c)}")
+    sec = df[df.seed.isin([100, 101, 102])].groupby("method").seconds.mean()
+    print(f"training time per run (s, seeds 100-102): CMF {sec['CMF']:.0f}, CMF-linbase {sec['CMF-linbase']:.0f}, ratio {sec['CMF'] / sec['CMF-linbase']:.1f}")
+    print("losing budget runs over S1-S3:", df[df.method != "NoMedia"].groupby("method").uplift_captured.apply(lambda x: int((x < 0).sum())).to_dict())
+    if not rob.empty:
+        print("losing budget runs in robustness scenarios:",
+              rob.groupby(["scenario", "method"]).uplift_captured.apply(lambda x: f"{int((x < 0).sum())}/{len(x)}").unstack(0).to_string())
+    rd = [json.loads(l) for l in open("results/realdata.jsonl")] if os.path.exists("results/realdata.jsonl") else []
+    for m in ["Naive", "NoMedia"]:
+        v = [r["r2_pooled_hold"] for r in rd if r["method"] == m and r.get("cutoff", 101) == 101]
+        if v:
+            print(f"real data, last 8 weeks (DeepCausalMMM split): {m} pooled holdout R2 {np.mean(v):.3f}")
+    for f in sorted(glob.glob("bench/results/dcm_panel_*.json")):
+        print(f"DeepCausalMMM reproduction {os.path.basename(f)}: holdout R2 {json.load(open(f))['holdout_r2']:.3f}")
